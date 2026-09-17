@@ -1,2 +1,0 @@
-# CALCULATOR
-fist made calculator

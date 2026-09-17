@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Readable Calculator with History</title>
+    
+    <style>
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes digitTypePop {
+            0% {
+                transform: scale(0.97);
+                filter: brightness(1.3);
+            }
+            50% {
+                transform: scale(1.04);
+                filter: brightness(1.6);
+            }
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        @keyframes cursorBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        @keyframes slideInHistory {
+            from {
+                opacity: 0;
+                transform: translateX(30px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        @keyframes fadeOutItem {
+            to {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- Dark Theme Palette (Default) --- */
+        body.dark-theme {
+            background: linear-gradient(-45deg, #020617, #0f172a, #1e1b4b, #030712);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #ffffff;
+
+            --header-color: #ffffff;
+            --header-glow: rgba(96, 165, 250, 0.5);
+            --badge-bg: rgba(30, 58, 138, 0.4);
+            --badge-border: rgba(96, 165, 250, 0.3);
+            
+            --toggle-bg: rgba(30, 41, 59, 0.6);
+            --toggle-border: rgba(255, 255, 255, 0.15);
+            --toggle-text: #f8fafc;
+
+            --calc-bg: rgba(15, 23, 42, 0.45);
+            --calc-border: rgba(255, 255, 255, 0.12);
+            --calc-shadow: rgba(0, 0, 0, 0.7);
+
+            --display-bg: rgba(2, 6, 23, 0.65);
+            --display-border: rgba(255, 255, 255, 0.08);
+            --expression-color: #94a3b8;
+            --result-color: #ffffff;
+            --cursor-color: #60a5fa;
+
+            --btn-num-bg: rgba(30, 41, 59, 0.35);
+            --btn-num-hover: rgba(51, 65, 85, 0.55);
+            --btn-num-text: #f8fafc;
+            --btn-num-border: rgba(255, 255, 255, 0.12);
+            --btn-num-glow: rgba(255, 255, 255, 0.15);
+
+            --btn-op-bg: rgba(30, 58, 138, 0.45);
+            --btn-op-hover: rgba(30, 64, 175, 0.65);
+            --btn-op-text: #60a5fa;
+            --btn-op-border: rgba(96, 165, 250, 0.3);
+            --btn-op-glow: rgba(96, 165, 250, 0.35);
+
+            --btn-clear-bg: rgba(153, 27, 27, 0.4);
+            --btn-clear-hover: rgba(185, 28, 28, 0.6);
+            --btn-clear-text: #fca5a5;
+            --btn-clear-border: rgba(252, 165, 165, 0.3);
+            --btn-clear-glow: rgba(248, 113, 113, 0.35);
+
+            --btn-del-bg: rgba(146, 64, 14, 0.4);
+            --btn-del-hover: rgba(180, 83, 9, 0.6);
+            --btn-del-text: #fcd34d;
+            --btn-del-border: rgba(252, 211, 77, 0.3);
+            --btn-del-glow: rgba(251, 191, 36, 0.35);
+
+            --btn-eq-bg: rgba(13, 148, 136, 0.45);
+            --btn-eq-hover: rgba(15, 118, 110, 0.7);
+            --btn-eq-text: #5eead4;
+            --btn-eq-border: rgba(94, 234, 212, 0.35);
+            --btn-eq-glow: rgba(45, 212, 191, 0.4);
+
+            --footer-bg: rgba(15, 23, 42, 0.4);
+            --footer-border: rgba(255, 255, 255, 0.08);
+            --footer-text: #94a3b8;
+            --footer-highlight: #60a5fa;
+
+            --modal-bg: rgba(15, 23, 42, 0.85);
+            --modal-border: rgba(255, 255, 255, 0.15);
+
+            --history-bg: rgba(15, 23, 42, 0.85);
+            --history-border: rgba(255, 255, 255, 0.15);
+            --history-item-bg: rgba(30, 41, 59, 0.5);
+            --history-item-hover: rgba(51, 65, 85, 0.7);
+            --history-subtext: #94a3b8;
+        }
+
+        /* --- Light Theme Palette --- */
+        body.light-theme {
+            background: linear-gradient(-45deg, #e0f2fe, #f0f9ff, #e0e7ff, #f3e8ff);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #0f172a;
+
+            --header-color: #0f172a;
+            --header-glow: rgba(37, 99, 235, 0.25);
+            --badge-bg: rgba(219, 234, 254, 0.7);
+            --badge-border: rgba(37, 99, 235, 0.25);
+
+            --toggle-bg: rgba(255, 255, 255, 0.75);
+            --toggle-border: rgba(15, 23, 42, 0.15);
+            --toggle-text: #0f172a;
+
+            --calc-bg: rgba(255, 255, 255, 0.55);
+            --calc-border: rgba(255, 255, 255, 0.8);
+            --calc-shadow: rgba(148, 163, 184, 0.35);
+
+            --display-bg: rgba(248, 250, 252, 0.85);
+            --display-border: rgba(203, 213, 225, 0.8);
+            --expression-color: #64748b;
+            --result-color: #0f172a;
+            --cursor-color: #2563eb;
+
+            --btn-num-bg: rgba(255, 255, 255, 0.7);
+            --btn-num-hover: rgba(241, 245, 249, 0.95);
+            --btn-num-text: #1e293b;
+            --btn-num-border: rgba(203, 213, 225, 0.6);
+            --btn-num-glow: rgba(203, 213, 225, 0.5);
+
+            --btn-op-bg: rgba(219, 234, 254, 0.75);
+            --btn-op-hover: rgba(191, 219, 254, 0.95);
+            --btn-op-text: #1d4ed8;
+            --btn-op-border: rgba(147, 197, 253, 0.7);
+            --btn-op-glow: rgba(147, 197, 253, 0.5);
+
+            --btn-clear-bg: rgba(254, 226, 226, 0.75);
+            --btn-clear-hover: rgba(254, 202, 202, 0.95);
+            --btn-clear-text: #b91c1c;
+            --btn-clear-border: rgba(252, 165, 165, 0.7);
+            --btn-clear-glow: rgba(252, 165, 165, 0.5);
+
+            --btn-del-bg: rgba(254, 243, 199, 0.75);
+            --btn-del-hover: rgba(253, 230, 138, 0.95);
+            --btn-del-text: #b45309;
+            --btn-del-border: rgba(252, 211, 77, 0.7);
+            --btn-del-glow: rgba(252, 211, 77, 0.5);
+
+            --btn-eq-bg: rgba(204, 251, 241, 0.8);
+            --btn-eq-hover: rgba(153, 246, 228, 1);
+            --btn-eq-text: #0f766e;
+            --btn-eq-border: rgba(94, 234, 212, 0.7);
+            --btn-eq-glow: rgba(94, 234, 212, 0.6);
+
+            --footer-bg: rgba(255, 255, 255, 0.5);
+            --footer-border: rgba(255, 255, 255, 0.7);
+            --footer-text: #64748b;
+            --footer-highlight: #1d4ed8;
+
+            --modal-bg: rgba(255, 255, 255, 0.92);
+            --modal-border: rgba(203, 213, 225, 0.8);
+
+            --history-bg: rgba(255, 255, 255, 0.88);
+            --history-border: rgba(203, 213, 225, 0.8);
+            --history-item-bg: rgba(241, 245, 249, 0.85);
+            --history-item-hover: rgba(226, 232, 240, 1);
+            --history-subtext: #64748b;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .main-wrapper {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+        }
+
+        .calculator-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 380px;
+            flex-shrink: 0;
+        }
+
+        /* ==========================================================================
+           HEADER & BUTTON CONTROLS
+           ========================================================================== */
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 0 4px;
+        }
+
+        .header-title-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-title-box h1 {
+            font-size: 1.55rem;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            color: var(--header-color);
+            text-shadow: 0 2px 10px var(--header-glow);
+        }
+
+        .header-icon-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background: var(--badge-bg);
+            border: 1px solid var(--badge-border);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .header-icon-badge svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: #3b82f6;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: var(--toggle-bg);
+            border: 1px solid var(--toggle-border);
+            color: var(--toggle-text);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+        }
+
+        .icon-btn:active {
+            transform: translateY(1px) scale(0.96);
+        }
+
+        .icon-btn.active {
+            background: var(--btn-op-bg);
+            border-color: var(--btn-op-border);
+            color: var(--btn-op-text);
+        }
+
+        .icon-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* ==========================================================================
+           GLASSMORPHIC CALCULATOR CONTAINER
+           ========================================================================== */
+        .calculator {
+            background: var(--calc-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            width: 100%;
+            padding: 24px;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px var(--calc-shadow),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--calc-border);
+        }
+
+        .display-container {
+            background: var(--display-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--display-border);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: right;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            word-wrap: break-word;
+            word-break: break-all;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .expression {
+            color: var(--expression-color);
+            font-size: 1.1rem;
+            min-height: 24px;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .result-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 2px;
+        }
+
+        .result {
+            color: var(--result-color);
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            display: inline-block;
+            transform-origin: right center;
+        }
+
+        .result.typing-active {
+            animation: digitTypePop 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 2.2rem;
+            background-color: var(--cursor-color);
+            border-radius: 2px;
+            margin-left: 3px;
+            animation: cursorBlink 1s infinite ease-in-out;
+            box-shadow: 0 0 8px var(--cursor-color);
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        button.btn-number,
+        button.btn-operator,
+        button.btn-clear,
+        button.btn-delete,
+        button.btn-equal {
+            border-style: solid;
+            border-width: 1px;
+            outline: none;
+            height: 64px;
+            border-radius: 18px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        background 0.25s ease,
+                        border-color 0.25s ease,
+                        box-shadow 0.25s ease,
+                        color 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        button:hover::after {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        button:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        button:active {
+            transform: translateY(2px) scale(0.95);
+        }
+
+        .btn-number {
+            background: var(--btn-num-bg);
+            color: var(--btn-num-text);
+            border-color: var(--btn-num-border);
+        }
+        .btn-number:hover {
+            background: var(--btn-num-hover);
+            box-shadow: 0 8px 22px var(--btn-num-glow);
+        }
+
+        .btn-operator {
+            background: var(--btn-op-bg);
+            color: var(--btn-op-text);
+            border-color: var(--btn-op-border);
+        }
+        .btn-operator:hover {
+            background: var(--btn-op-hover);
+            box-shadow: 0 8px 22px var(--btn-op-glow);
+        }
+
+        .btn-clear {
+            background: var(--btn-clear-bg);
+            color: var(--btn-clear-text);
+            border-color: var(--btn-clear-border);
+        }
+        .btn-clear:hover {
+            background: var(--btn-clear-hover);
+            box-shadow: 0 8px 22px var(--btn-clear-glow);
+        }
+
+        .btn-delete {
+            background: var(--btn-del-bg);
+            color: var(--btn-del-text);
+            border-color: var(--btn-del-border);
+        }
+        .btn-delete:hover {
+            background: var(--btn-del-hover);
+            box-shadow: 0 8px 22px var(--btn-del-glow);
+        }
+
+        .btn-equal {
+            background: var(--btn-eq-bg);
+            color: var(--btn-eq-text);
+            border-color: var(--btn-eq-border);
+            font-weight: 700;
+        }
+        .btn-equal:hover {
+            background: var(--btn-eq-hover);
+            box-shadow: 0 8px 22px var(--btn-eq-glow);
+        }
+
+        .span-two {
+            grid-column: span 2;
+        }
+
+        /* ==========================================================================
+           GLASSMORPHIC HISTORY SIDE PANEL
+           ========================================================================== */
+        .history-panel {
+            width: 100%;
+            max-width: 360px;
+            height: 100%;
+            min-height: 520px;
+            background: var(--history-bg);
+            border: 1px solid var(--history-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 28px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px var(--calc-shadow);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .history-panel.hidden {
+            display: none;
+        }
+
+        .history-panel.active {
+            animation: slideInHistory 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--history-border);
+        }
+
+        .history-title-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--header-color);
+        }
+
+        .history-title-box svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--footer-highlight);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .clear-history-btn {
+            background: var(--btn-clear-bg);
+            color: var(--btn-clear-text);
+            border: 1px solid var(--btn-clear-border);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .clear-history-btn:hover {
+            background: var(--btn-clear-hover);
+            transform: scale(1.05);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 410px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 4px;
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history-list::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 10px;
+        }
+
+        .history-item {
+            background: var(--history-item-bg);
+            border: 1px solid var(--history-border);
+            border-radius: 16px;
+            padding: 12px 16px;
+            text-align: right;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .history-item:hover {
+            background: var(--history-item-hover);
+            transform: translateX(-3px) scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-item .hist-expr {
+            font-size: 0.85rem;
+            color: var(--history-subtext);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .history-item .hist-res {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--result-color);
+        }
+
+        .history-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 250px;
+            color: var(--history-subtext);
+            font-size: 0.95rem;
+            text-align: center;
+            gap: 10px;
+        }
+
+        .history-empty svg {
+            width: 42px;
+            height: 42px;
+            stroke: var(--history-subtext);
+            opacity: 0.5;
+        }
+
+        /* ==========================================================================
+           GLASS FOOTER
+           ========================================================================== */
+        .app-footer {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            background: var(--footer-bg);
+            border: 1px solid var(--footer-border);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            text-align: center;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--footer-text);
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .app-footer strong {
+            color: var(--footer-highlight);
+            font-weight: 700;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            z-index: 999;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: var(--modal-bg);
+            border: 1px solid var(--modal-border);
+            padding: 24px;
+            border-radius: 20px;
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transform: scale(0.9);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-msg {
+            font-size: 1rem;
+            margin-bottom: 18px;
+            font-weight: 600;
+        }
+
+        .modal-btn {
+            background: var(--btn-op-bg);
+            color: var(--btn-op-text);
+            border: 1px solid var(--btn-op-border);
+            padding: 8px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn:hover {
+            background: var(--btn-op-hover);
+            transform: scale(1.05);
+        }
+
+        /* Responsive Mobile Layout */
+        @media (max-width: 768px) {
+            .main-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+            .history-panel {
+                max-width: 380px;
+                min-height: auto;
+            }
+        }
+    </style>
+</head>
+<body class="dark-theme">
+
+    <div class="main-wrapper">
+        <div class="calculator-column">
+            <!-- HEADER WITH THEME TOGGLE & HISTORY TOGGLE -->
+            <header class="app-header">
+                <div class="header-title-box">
+                    <div class="header-icon-badge">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                            <line x1="8" y1="6" x2="16" y2="6"></line>
+                            <line x1="16" y1="14" x2="16" y2="18"></line>
+                            <line x1="8" y1="10" x2="8.01" y2="10"></line>
+                            <line x1="12" y1="10" x2="12.01" y2="10"></line>
+                            <line x1="16" y1="10" x2="16.01" y2="10"></line>
+                            <line x1="8" y1="14" x2="8.01" y2="14"></line>
+                            <line x1="12" y1="14" x2="12.01" y2="14"></line>
+                            <line x1="8" y1="18" x2="8.01" y2="18"></line>
+                            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                        </svg>
+                    </div>
+                    <h1>CALC</h1>
+                </div>
+
+                <div class="header-actions">
+                    <button class="icon-btn" id="historyToggleBtn" onclick="toggleHistoryPanel()" title="Toggle History">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <polyline points="12 7 12 12 15 15"></polyline>
+                        </svg>
+                        <span>History</span>
+                    </button>
+
+                    <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Theme">
+                        <svg id="themeIcon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <span id="themeLabel">Light</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- CALCULATOR MAIN CARD -->
+            <div class="calculator">
+                <!-- DISPLAY SCREEN -->
+                <div class="display-container">
+                    <div id="expression" class="expression"></div>
+                    <div class="result-wrapper">
+                        <div id="result" class="result">0</div>
+                        <span class="typing-cursor"></span>
+                    </div>
+                </div>
+
+                <!-- KEYPAD GRID -->
+                <div class="keypad">
+                    <button class="btn-clear" onclick="clearCalculator()">C</button>
+                    <button class="btn-delete" onclick="deleteLastDigit()">⌫</button>
+                    <button class="btn-operator" onclick="chooseOperator('%')">%</button>
+                    <button class="btn-operator" onclick="chooseOperator('÷')">÷</button>
+
+                    <button class="btn-number" onclick="appendNumber('7')">7</button>
+                    <button class="btn-number" onclick="appendNumber('8')">8</button>
+                    <button class="btn-number" onclick="appendNumber('9')">9</button>
+                    <button class="btn-operator" onclick="chooseOperator('×')">×</button>
+
+                    <button class="btn-number" onclick="appendNumber('4')">4</button>
+                    <button class="btn-number" onclick="appendNumber('5')">5</button>
+                    <button class="btn-number" onclick="appendNumber('6')">6</button>
+                    <button class="btn-operator" onclick="chooseOperator('-')">-</button>
+
+                    <button class="btn-number" onclick="appendNumber('1')">1</button>
+                    <button class="btn-number" onclick="appendNumber('2')">2</button>
+                    <button class="btn-number" onclick="appendNumber('3')">3</button>
+                    <button class="btn-operator" onclick="chooseOperator('+')">+</button>
+
+                    <button class="btn-number span-two" onclick="appendNumber('0')">0</button>
+                    <button class="btn-number" onclick="appendDecimal()">.</button>
+                    <button class="btn-equal" onclick="calculateResult()">=</button>
+                </div>
+            </div>
+
+            <!-- GLASS FOOTER -->
+            <footer class="app-footer">
+                © 2026 — All rights reserved. Made by <strong>Benjhun PAMA</strong>
+            </footer>
+        </div>
+
+        <!-- HISTORY PANEL DRAWER -->
+        <div class="history-panel hidden" id="historyPanel">
+            <div class="history-header">
+                <div class="history-title-box">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <polyline points="12 7 12 12 15 15"></polyline>
+                    </svg>
+                    <span>Calculation History</span>
+                </div>
+                <button class="clear-history-btn" onclick="clearHistory()">
+                    Clear
+                </button>
+            </div>
+            <div class="history-list" id="historyList">
+                <!-- Dynamically populated calculation items -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal Dialog (Replaces native alert) -->
+    <div class="modal-overlay" id="customModal">
+        <div class="modal-box">
+            <div class="modal-msg" id="modalMessage">Cannot divide by zero!</div>
+            <button class="modal-btn" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. THEME TOGGLE & LOCAL STORAGE
+           ========================================================================== */
+        const themeLabel = document.getElementById('themeLabel');
+        const themeIcon = document.getElementById('themeIcon');
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.body.classList.remove('dark-theme');
+                document.body.classList.add('light-theme');
+                themeLabel.innerText = 'Dark';
+                themeIcon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+            } else {
+                document.body.classList.remove('light-theme');
+                document.body.classList.add('dark-theme');
+                themeLabel.innerText = 'Light';
+                themeIcon.innerHTML = `
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            try {
+                localStorage.setItem('calc_theme', newTheme);
+            } catch (e) {
+                // Safe fallback for restricted iframe storage
+            }
+        }
+
+        try {
+            const savedTheme = localStorage.getItem('calc_theme') || 'dark';
+            applyTheme(savedTheme);
+        } catch (e) {
+            applyTheme('dark');
+        }
+
+        // Custom Modal Alert
+        function showAlert(msg) {
+            document.getElementById('modalMessage').innerText = msg;
+            document.getElementById('customModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.remove('active');
+        }
+
+        /* ==========================================================================
+           2. HISTORY PANEL MANAGEMENT
+           ========================================================================== */
+        const historyPanel = document.getElementById('historyPanel');
+        const historyToggleBtn = document.getElementById('historyToggleBtn');
+        const historyList = document.getElementById('historyList');
+
+        let historyItems = [];
+
+        function toggleHistoryPanel() {
+            const isHidden = historyPanel.classList.contains('hidden');
+            if (isHidden) {
+                historyPanel.classList.remove('hidden');
+                historyPanel.classList.add('active');
+                historyToggleBtn.classList.add('active');
+            } else {
+                historyPanel.classList.remove('active');
+                historyPanel.classList.add('hidden');
+                historyToggleBtn.classList.remove('active');
+            }
+        }
+
+        function loadHistory() {
+            try {
+                const stored = localStorage.getItem('calc_history');
+                if (stored) {
+                    historyItems = JSON.parse(stored);
+                }
+            } catch (e) {
+                historyItems = [];
+            }
+            renderHistory();
+        }
+
+        function saveHistory() {
+            try {
+                localStorage.setItem('calc_history', JSON.stringify(historyItems));
+            } catch (e) {
+                // Ignore iframe storage limitations
+            }
+            renderHistory();
+        }
+
+        function addHistoryEntry(expressionStr, resultStr) {
+            historyItems.unshift({
+                id: Date.now(),
+                expression: expressionStr,
+                result: resultStr
+            });
+
+            // Keep max 30 history items
+            if (historyItems.length > 30) {
+                historyItems.pop();
+            }
+
+            saveHistory();
+        }
+
+        function renderHistory() {
+            if (!historyList) return;
+
+            if (historyItems.length === 0) {
+                historyList.innerHTML = `
+                    <div class="history-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <polyline points="12 7 12 12 15 15"></polyline>
+                        </svg>
+                        <span>No calculation history yet</span>
+                    </div>`;
+                return;
+            }
+
+            historyList.innerHTML = historyItems.map(item => `
+                <div class="history-item" onclick="restoreHistoryItem('${item.result}', '${escapeQuotes(item.expression)}')">
+                    <div class="hist-expr">${item.expression}</div>
+                    <div class="hist-res">${item.result}</div>
+                </div>
+            `).join('');
+        }
+
+        function escapeQuotes(str) {
+            return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        function clearHistory() {
+            historyItems = [];
+            saveHistory();
+        }
+
+        function restoreHistoryItem(resValue, exprValue) {
+            currentInput = String(resValue);
+            previousInput = '';
+            selectedOperator = '';
+            isNewCalculation = true;
+            expressionElement.innerText = exprValue;
+            triggerTypingAnimation();
+            resultElement.innerText = currentInput;
+        }
+
+        /* ==========================================================================
+           3. CALCULATOR LOGIC & TYPING ANIMATION
+           ========================================================================== */
+        const resultElement = document.getElementById('result');
+        const expressionElement = document.getElementById('expression');
+
+        let currentInput = '0';      
+        let previousInput = '';     
+        let selectedOperator = '';  
+        let isNewCalculation = false; 
+
+        function triggerTypingAnimation() {
+            resultElement.classList.remove('typing-active');
+            void resultElement.offsetWidth; // Force CSS reflow
+            resultElement.classList.add('typing-active');
+        }
+
+        function updateScreen() {
+            resultElement.innerText = currentInput;
+            
+            if (selectedOperator !== '') {
+                expressionElement.innerText = previousInput + ' ' + selectedOperator;
+            } else {
+                expressionElement.innerText = '';
+            }
+
+            triggerTypingAnimation();
+        }
+
+        function appendNumber(number) {
+            if (currentInput === '0' || isNewCalculation) {
+                currentInput = number;
+                isNewCalculation = false;
+            } else {
+                if (currentInput.length < 12) {
+                    currentInput += number;
+                }
+            }
+            updateScreen();
+        }
+
+        function appendDecimal() {
+            if (isNewCalculation) {
+                currentInput = '0.';
+                isNewCalculation = false;
+            } else if (!currentInput.includes('.')) {
+                currentInput += '.';
+            }
+            updateScreen();
+        }
+
+        function chooseOperator(operator) {
+            if (selectedOperator !== '' && !isNewCalculation) {
+                calculateResult();
+            }
+            
+            previousInput = currentInput;
+            selectedOperator = operator;
+            isNewCalculation = true;
+            updateScreen();
+        }
+
+        function calculateResult() {
+            if (selectedOperator === '' || previousInput === '') return;
+
+            let firstNumber = parseFloat(previousInput);
+            let secondNumber = parseFloat(currentInput);
+            let calculatedValue = 0;
+
+            switch (selectedOperator) {
+                case '+':
+                    calculatedValue = firstNumber + secondNumber;
+                    break;
+                case '-':
+                    calculatedValue = firstNumber - secondNumber;
+                    break;
+                case '×':
+                    calculatedValue = firstNumber * secondNumber;
+                    break;
+                case '÷':
+                    if (secondNumber === 0) {
+                        showAlert("Cannot divide by zero!");
+                        clearCalculator();
+                        return;
+                    }
+                    calculatedValue = firstNumber / secondNumber;
+                    break;
+                case '%':
+                    calculatedValue = firstNumber % secondNumber;
+                    break;
+            }
+
+            calculatedValue = Math.round(calculatedValue * 100000000) / 100000000;
+
+            const fullExpr = `${previousInput} ${selectedOperator} ${currentInput} =`;
+            expressionElement.innerText = fullExpr;
+            
+            // Add to glass history list
+            addHistoryEntry(fullExpr, String(calculatedValue));
+
+            currentInput = String(calculatedValue);
+            selectedOperator = '';
+            previousInput = '';
+            isNewCalculation = true;
+
+            triggerTypingAnimation();
+            resultElement.innerText = currentInput;
+        }
+
+        function clearCalculator() {
+            currentInput = '0';
+            previousInput = '';
+            selectedOperator = '';
+            isNewCalculation = false;
+            updateScreen();
+        }
+
+        function deleteLastDigit() {
+            if (isNewCalculation) return;
+
+            if (currentInput.length === 1) {
+                currentInput = '0';
+            } else {
+                currentInput = currentInput.slice(0, -1);
+            }
+            updateScreen();
+        }
+
+        /* ==========================================================================
+           4. KEYBOARD SUPPORT & INITIALIZATION
+           ========================================================================== */
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+
+            if (key >= '0' && key <= '9') appendNumber(key);
+            if (key === '.') appendDecimal();
+            if (key === '+') chooseOperator('+');
+            if (key === '-') chooseOperator('-');
+            if (key === '*') chooseOperator('×');
+            if (key === '/') {
+                event.preventDefault();
+                chooseOperator('÷');
+            }
+            if (key === '%') chooseOperator('%');
+            if (key === 'Enter' || key === '=') {
+                event.preventDefault();
+                calculateResult();
+            }
+            if (key === 'Backspace') deleteLastDigit();
+            if (key === 'Escape') clearCalculator();
+        });
+
+        // Initialize history list on start
+        loadHistory();
+    </script>
+</body>
+</html>
